@@ -16,7 +16,7 @@
   "environment": "*",
   "entrypoints": {
     "main": [
-      "org.portinglab.fabricatedeventregister.FabricatedEventRegisterMod"
+      "org.portinglab.fabricated.eventregister.FabricatedEventRegisterMod"
     ]
   },
   "depends": {

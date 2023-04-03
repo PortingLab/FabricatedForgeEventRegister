@@ -1,9 +1,9 @@
-package org.portinglab.fabricatedeventregister.event;
+package org.portinglab.fabricated.eventregister.event;
 
 import net.fabricmc.api.EnvType;
-import org.portinglab.fabricatedeventbus.api.EventBusImpl;
-import org.portinglab.fabricatedeventregister.FabricatedEventRegisterMod;
-import org.portinglab.fabricatedeventregister.fabricated.fml.FabricatedFML;
+import org.portinglab.fabricated.eventbus.bus.api.EventBusImpl;
+import org.portinglab.fabricated.eventregister.FabricatedEventRegisterMod;
+import org.portinglab.fabricated.fml.FabricatedFML;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -33,7 +33,7 @@ public @interface ModEvent {
      */
     @Retention(RetentionPolicy.RUNTIME)
     @Target(ElementType.TYPE)
-    @interface EventBusSubscriber {
+    @interface EventBusRegister {
         /**
          * Specify targets to load this event subscriber on. Can be used to avoid loading Client specific events
          * on a dedicated server, for example.

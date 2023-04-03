@@ -1,28 +1,33 @@
-package org.portinglab.fabricatedeventregister.fabricated.fml;
+package org.portinglab.fabricated.fml;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
 import net.fabricmc.loader.impl.ModContainerImpl;
 import net.fabricmc.loader.impl.discovery.ModCandidate;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 import org.objectweb.asm.Type;
-import org.portinglab.fabricatedeventbus.EventBusErrorMessage;
-import org.portinglab.fabricatedeventbus.api.BusBuilder;
-import org.portinglab.fabricatedeventbus.api.Event;
-import org.portinglab.fabricatedeventbus.api.EventBusImpl;
-import org.portinglab.fabricatedeventbus.api.EventListenerImpl;
-import org.portinglab.fabricatedeventregister.FabricatedEventRegisterMod;
-import org.portinglab.fabricatedeventregister.event.register.EventAutoRegister;
-import org.portinglab.fabricatedeventregister.fabricated.event.ModBusEventImpl;
+import org.portinglab.fabricated.eventbus.bus.EventBusErrorMessage;
+import org.portinglab.fabricated.eventbus.bus.api.BusBuilder;
+import org.portinglab.fabricated.eventbus.bus.api.Event;
+import org.portinglab.fabricated.eventbus.bus.api.EventBusImpl;
+import org.portinglab.fabricated.eventbus.bus.api.EventListenerImpl;
+import org.portinglab.fabricated.eventregister.FabricatedEventRegisterMod;
+import org.portinglab.fabricated.eventregister.event.register.EventAutoRegister;
+import org.portinglab.fabricated.event.ModBusEventImpl;
 
 import java.lang.annotation.ElementType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.function.Supplier;
 
 public class FabricatedFML {
     public static final Marker LOADING = MarkerManager.getMarker("LOADING");
@@ -67,8 +72,8 @@ public class FabricatedFML {
     }
 
     public static class ModAnnotation {
-        public static FabricatedForgeSPI.ModFileScanData.AnnotationData fromModAnnotation(final Type clazz, final ModAnnotation annotation) {
-            return new FabricatedForgeSPI.ModFileScanData.AnnotationData(annotation.asmType, annotation.type, clazz, annotation.member, annotation.values);
+        public static FabricatedSPI.ModFileScanData.AnnotationData fromModAnnotation(final Type clazz, final ModAnnotation annotation) {
+            return new FabricatedSPI.ModFileScanData.AnnotationData(annotation.asmType, annotation.type, clazz, annotation.member, annotation.values);
         }
 
         public static class EnumHolder {
@@ -160,11 +165,11 @@ public class FabricatedFML {
     }
 
     public static class FMLModContainer extends ModContainerImpl {
-        private final FabricatedForgeSPI.ModFileScanData scanResults;
+        private final FabricatedSPI.ModFileScanData scanResults;
         public final EventBusImpl eventBus;
         private Object modInstance;
         private final Class<?> modClass;
-        public FMLModContainer(ModCandidate candidate, FabricatedForgeSPI.ModFileScanData scanResults, Object modInstance, Class<?> modClass) {
+        public FMLModContainer(ModCandidate candidate, FabricatedSPI.ModFileScanData scanResults, Object modInstance, Class<?> modClass) {
             super(candidate);
             Map<ModLoadingStage, Runnable> activityMap = new HashMap<>();
             this.scanResults = scanResults;
@@ -197,5 +202,31 @@ public class FabricatedFML {
         public enum ModLoadingStage {
             CONSTRUCT
         }
+    }
+
+    public static class DeferredWorkQueue {
+        private static final Map<FMLModContainer.ModLoadingStage, DeferredWorkQueue> workQueues = new HashMap<>();
+        private final FMLModContainer.ModLoadingStage modLoadingStage;
+        private final ConcurrentLinkedDeque<TaskInfo> tasks = new ConcurrentLinkedDeque<>();
+
+        public DeferredWorkQueue(FMLModContainer.ModLoadingStage modLoadingStage) {
+            this.modLoadingStage = modLoadingStage;
+            workQueues.put(modLoadingStage, this);
+        }
+
+        @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+        public static Optional<DeferredWorkQueue> lookup(Optional<FMLModContainer.ModLoadingStage> parallelClass) {
+            return Optional.ofNullable(workQueues.get(parallelClass.orElse(null)));
+        }
+
+        public CompletableFuture<Void> enqueueWork(final ModContainer modInfo, final Runnable work) {
+            return CompletableFuture.runAsync(work, r->tasks.add(new TaskInfo(modInfo, r)));
+        }
+
+        public <T> CompletableFuture<T> enqueueWork(final ModContainer modInfo, final Supplier<T> work) {
+            return CompletableFuture.supplyAsync(work, r->tasks.add(new TaskInfo(modInfo, r)));
+        }
+
+        record TaskInfo(ModContainer owner, Runnable task) {}
     }
 }

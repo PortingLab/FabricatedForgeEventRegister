@@ -1,11 +1,11 @@
-package org.portinglab.fabricatedeventregister.fabricated.fml;
+package org.portinglab.fabricated.fml;
 
 import org.objectweb.asm.Type;
 
 import java.lang.annotation.ElementType;
 import java.util.*;
 
-public class FabricatedForgeSPI {
+public class FabricatedSPI {
     public static class ModFileScanData {
         private final Set<AnnotationData> annotations = new LinkedHashSet<>();
 

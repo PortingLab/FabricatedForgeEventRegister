@@ -1,23 +1,23 @@
-package org.portinglab.fabricatedeventregister.event.register;
+package org.portinglab.fabricated.eventregister.event.register;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.ModContainer;
 import org.objectweb.asm.Type;
-import org.portinglab.fabricatedeventregister.FabricatedEventRegisterMod;
-import org.portinglab.fabricatedeventregister.event.ModEvent;
-import org.portinglab.fabricatedeventregister.fabricated.fml.FabricatedFML;
-import org.portinglab.fabricatedeventregister.fabricated.fml.FabricatedForgeSPI;
+import org.portinglab.fabricated.eventregister.FabricatedEventRegisterMod;
+import org.portinglab.fabricated.eventregister.event.ModEvent;
+import org.portinglab.fabricated.fml.FabricatedFML;
+import org.portinglab.fabricated.fml.FabricatedSPI;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class EventAutoRegister {
-    private static final Type AUTO_SUBSCRIBER = Type.getType(ModEvent.EventBusSubscriber.class);
+    private static final Type AUTO_SUBSCRIBER = Type.getType(ModEvent.EventBusRegister.class);
     private static final Type MOD_TYPE = Type.getType(ModEvent.class);
-    public static void inject(final ModContainer mod, final FabricatedForgeSPI.ModFileScanData scanData, final ClassLoader loader) {
+    public static void inject(final ModContainer mod, final FabricatedSPI.ModFileScanData scanData, final ClassLoader loader) {
         if (scanData == null) return;
         FabricatedEventRegisterMod.LOGGER.debug(FabricatedFML.LOADING,"Attempting to inject @EventBusSubscriber classes into the eventbus for {}", mod.getMetadata().getId());
-        List<FabricatedForgeSPI.ModFileScanData.AnnotationData> ebsTargets = scanData.getAnnotations().stream().
+        List<FabricatedSPI.ModFileScanData.AnnotationData> ebsTargets = scanData.getAnnotations().stream().
                 filter(annotationData -> AUTO_SUBSCRIBER.equals(annotationData.annotationType())).
                 collect(Collectors.toList());
         Map<String, String> modids = scanData.getAnnotations().stream().
@@ -32,7 +32,7 @@ public class EventAutoRegister {
                     collect(Collectors.toCollection(() -> EnumSet.noneOf(EnvType.class)));
             final String modId = (String)ad.annotationData().getOrDefault("modid", modids.getOrDefault(ad.clazz().getClassName(), mod.getMetadata().getId()));
             final FabricatedFML.ModAnnotation.EnumHolder busTargetHolder = (FabricatedFML.ModAnnotation.EnumHolder)ad.annotationData().getOrDefault("bus", new FabricatedFML.ModAnnotation.EnumHolder(null, "FORGE"));
-            final ModEvent.EventBusSubscriber.Bus busTarget = ModEvent.EventBusSubscriber.Bus.valueOf(busTargetHolder.getValue());
+            final ModEvent.EventBusRegister.Bus busTarget = ModEvent.EventBusRegister.Bus.valueOf(busTargetHolder.getValue());
             if (Objects.equals(mod.getMetadata().getId(), modId) && sides.contains(FabricatedFML.FMLEnvironment.dist)) {
                 try {
                     FabricatedEventRegisterMod.LOGGER.debug(FabricatedFML.LOADING, "Auto-subscribing {} to {}", ad.clazz().getClassName(), busTarget);

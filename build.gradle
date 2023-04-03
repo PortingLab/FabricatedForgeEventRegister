@@ -10,7 +10,6 @@ version = project.mod_version
 group = project.maven_group
 
 repositories {
-	maven { url 'https://jitpack.io'}
 	maven { url "https://files.minecraftforge.net/maven/" }
 }
 
@@ -20,7 +19,8 @@ dependencies {
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	modImplementation "com.github.PortingLab:FabricatedForgeEventBus:fabric-SNAPSHOT"
+	implementation 'org.jetbrains:annotations:20.1.0'
+	implementation(include("net.jodah:typetools:0.8.3"))
 }
 
 processResources {
